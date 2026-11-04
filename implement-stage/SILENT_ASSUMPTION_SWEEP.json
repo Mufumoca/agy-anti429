@@ -1,0 +1,51 @@
+{
+  "reviewer": "01a1a76a-6a8d-7330-bf69-da2ce9737977",
+  "route": "native fresh reviewer; canonical route helper unavailable",
+  "actual_model": null,
+  "review_independence": "unknown",
+  "acceptance_status": "provisional",
+  "rounds": [
+    {
+      "round": 1,
+      "verdict": "findings",
+      "semantic_undeclared": 1,
+      "stale_rows": 2,
+      "findings": [
+        {
+          "site": "src/session.mjs, src/server.mjs",
+          "decision": "Fatal failures during tool-result waiting leave dead sessions occupying capacity.",
+          "why_it_matters": "Once a tool response is returned there is no active collector. ACP exit or MCP disconnection only queues an error; four such failures can exhaust the default process capacity until TTL.",
+          "class": "interface",
+          "status": "Conflicts with A-009 and documented cleanup; fixed by immediate server disposal on fatal transport errors. Verified with real official child process SIGKILL."
+        },
+        {
+          "site": "src/session.mjs",
+          "decision": "Tool arguments bypass the configured output limit.",
+          "why_it_matters": "Events delivered directly to a waiting collector bypass queuedBytes; the collection response-size check covered only text, not tool arguments.",
+          "class": "interface",
+          "status": "Conflicts with A-009; fixed combined text and serialized tool budget. Direct-waiter regression check passed."
+        },
+        {
+          "site": "src/session.mjs, src/protocol.mjs",
+          "decision": "Agent request-budget exhaustion is reported as token exhaustion.",
+          "why_it_matters": "ACP max_turn_requests became OpenAI length and Anthropic max_tokens, misleading callers about the stop reason.",
+          "class": "semantic",
+          "status": "Added A-014 and changed to explicit upstream_error; regression check passed."
+        }
+      ],
+      "reviewer_note": "The continuation mechanism does resume the original pending MCP call through Bridge.resolve() while retaining the original ACP prompt; it does not reconstruct a fake tool exchange. Anthropic is_error maps to MCP isError, and OpenAI text results map to MCP text content. Token limits, role priority, serial tool delivery, schema validation, and native-tool isolation limitations are explicitly documented. Actual model identity unknown; this review does not establish cross-family independence or constitute an independent acceptance pass."
+    }
+  ],
+  "recheck": {
+    "round": 2,
+    "verdict": "two lifecycle findings; fixed after final review by executor",
+    "semantic_undeclared": 0,
+    "stale_rows": 2,
+    "findings": [
+      "Concurrent dispose callers could release capacity before initial cleanup completed. Fixed Session.close() to return one shared cleanup promise; held-cleanup regression passed.",
+      "Buffered-output overflow bypassed server disposal and could permanently retain capacity. Fixed overflow path to call onFatal; overflow callback regression passed."
+    ],
+    "confirmed_fixes": ["Tool argument output budget", "max_turn_requests error mapping", "Ordinary idle transport failure disposal"],
+    "limitation": "Round budget exhausted. Last lifecycle fixes verified by executor only, not independently re-reviewed. Actual reviewer model identity unknown."
+  }
+}
